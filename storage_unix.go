@@ -143,3 +143,16 @@ func removeSource(f *os.File, stageDir string, original os.FileInfo) error {
 	}
 	return os.Remove(quarantine)
 }
+
+func hideInput(fd int) (func() error, error) {
+	state, err := unix.IoctlGetTermios(fd, getTermios)
+	if err != nil {
+		return nil, err
+	}
+	hidden := *state
+	hidden.Lflag &^= unix.ECHO
+	if err := unix.IoctlSetTermios(fd, setTermios, &hidden); err != nil {
+		return nil, err
+	}
+	return func() error { return unix.IoctlSetTermios(fd, setTermios, state) }, nil
+}

@@ -205,3 +205,15 @@ func removeSource(f *os.File, _ string, _ os.FileInfo) error {
 	return windows.SetFileInformationByHandle(windows.Handle(f.Fd()), windows.FileDispositionInfo,
 		(*byte)(unsafe.Pointer(&deletePending)), uint32(unsafe.Sizeof(deletePending)))
 }
+
+func hideInput(fd int) (func() error, error) {
+	handle := windows.Handle(fd)
+	var mode uint32
+	if err := windows.GetConsoleMode(handle, &mode); err != nil {
+		return nil, err
+	}
+	if err := windows.SetConsoleMode(handle, mode&^windows.ENABLE_ECHO_INPUT); err != nil {
+		return nil, err
+	}
+	return func() error { return windows.SetConsoleMode(handle, mode) }, nil
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
@@ -29,21 +30,19 @@ func readLine(reader *bufio.Reader) (string, error) {
 }
 
 func passphrase(confirm bool) (string, error) {
-	fmt.Print("  Passphrase: ")
-	value, err := term.ReadPassword(int(os.Stdin.Fd()))
+	value, err := readSecret("  Passphrase: ")
+	defer clear(value)
 	fmt.Println()
 	if err != nil {
 		return "", fmt.Errorf("read hidden passphrase from terminal: %w", err)
 	}
-	defer clear(value)
 	if !confirm {
 		return string(value), nil
 	}
 	if !utf8.Valid(value) || utf8.RuneCount(value) < 12 || strings.TrimSpace(string(value)) == "" {
 		return "", errors.New("use at least 12 characters; five or more random words are better")
 	}
-	fmt.Print("  Confirm:    ")
-	again, err := term.ReadPassword(int(os.Stdin.Fd()))
+	again, err := readSecret("  Confirm:    ")
 	fmt.Println()
 	defer clear(again)
 	if err != nil {
@@ -53,6 +52,33 @@ func passphrase(confirm bool) (string, error) {
 		return "", errors.New("passphrases differ; nothing was changed")
 	}
 	return string(value), nil
+}
+
+func readSecret(prompt string) (value []byte, result error) {
+	fd := int(os.Stdin.Fd())
+	// Disable echo before the prompt so an immediate paste stays hidden.
+	restore, err := hideInput(fd)
+	if err != nil {
+		return nil, err
+	}
+	interrupts := make(chan os.Signal, 1)
+	finished := make(chan struct{})
+	signal.Notify(interrupts, os.Interrupt)
+	go func() {
+		select {
+		case <-interrupts:
+			restore()
+			os.Exit(130)
+		case <-finished:
+		}
+	}()
+	defer func() {
+		signal.Stop(interrupts)
+		close(finished)
+		result = errors.Join(result, restore())
+	}()
+	fmt.Print(prompt)
+	return term.ReadPassword(fd)
 }
 
 func setup(reader *bufio.Reader, config string) (string, error) {

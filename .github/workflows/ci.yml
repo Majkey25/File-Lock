@@ -54,6 +54,15 @@ jobs:
       - name: Exercise the native terminal menu
         if: runner.os != 'Windows'
         run: python3 scripts/smoke-unix.py dist/package/file-lock
+      - name: Verify platform download name and checksum
+        env:
+          EXPECTED_TARGET: ${{ matrix.platform }}
+        run: |
+          $checksum = "dist/File-Lock-$env:EXPECTED_TARGET.sha256"
+          if (-not (Test-Path -LiteralPath $checksum)) { throw 'Expected platform checksum is missing.' }
+          $entry = (Get-Content -LiteralPath $checksum -Raw).Trim() -split '\s+', 2
+          $archive = Join-Path dist $entry[1]
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine $entry[0]) { throw 'Archive checksum mismatch.' }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.platform }}

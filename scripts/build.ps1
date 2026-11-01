@@ -18,6 +18,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
     Copy-Item -LiteralPath README.md, LICENSE -Destination $package
     Copy-Item -LiteralPath docs -Destination "$package/docs" -Recurse
+    Copy-Item -LiteralPath assets -Destination "$package/assets" -Recurse
     if ($targetOS -eq 'windows') { Copy-Item -LiteralPath File-Lock.cmd -Destination $package }
     $goRoot = & $Go env GOROOT
     if ($LASTEXITCODE -ne 0) { throw 'Cannot locate Go license.' }
@@ -29,8 +30,8 @@ try {
         $parts = $module -split '\|', 2
         $license = Join-Path $parts[1] 'LICENSE'
         if ($parts[0] -ne 'github.com/Majkey25/File-Lock' -and (Test-Path -LiteralPath $license)) {
-            $name = ($parts[0] -replace '[/\\]', '_') + '.txt'
-            Copy-Item -LiteralPath $license -Destination "$package/licenses/$name"
+            $licenseName = ($parts[0] -replace '[/\\]', '_') + '.txt'
+            Copy-Item -LiteralPath $license -Destination "$package/licenses/$licenseName"
         }
     }
     if ($targetOS -eq 'windows') {
@@ -42,7 +43,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Packaging failed.' }
     }
     $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-    "$hash  $([System.IO.Path]::GetFileName($archive))" | Set-Content -LiteralPath "dist/$name.sha256" -Encoding ascii
+    [System.IO.File]::WriteAllText((Join-Path $root "dist/$name.sha256"), "$hash  $([System.IO.Path]::GetFileName($archive))`n", [System.Text.Encoding]::ASCII)
     Write-Output "Built $archive"
 } finally {
     Pop-Location
