@@ -13,7 +13,10 @@ import (
 )
 
 func cleanPath(input string) (string, error) {
-	path := strings.Trim(strings.TrimSpace(input), `"`)
+	path := strings.TrimSpace(input)
+	if len(path) >= 2 && path[0] == '"' && path[len(path)-1] == '"' {
+		path = path[1 : len(path)-1]
+	}
 	if !filepath.IsAbs(path) || filepath.Clean(path) == "/" || strings.ContainsRune(path, 0) {
 		return "", errors.New("use a full file path, such as /home/me/Documents/notes.txt")
 	}

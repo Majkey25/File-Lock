@@ -11,6 +11,26 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func TestUnixQuotedFileNames(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"trailing\"", "trailing space ", "žluťoučký notes"} {
+		path := filepath.Join(dir, name)
+		writeFixture(t, path, []byte("keep the exact filename"))
+		got, err := cleanPath(`"` + path + `"`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		before, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		after, err := os.Stat(got)
+		if err != nil || !os.SameFile(before, after) {
+			t.Fatalf("changed quoted filename: %q, %v", got, err)
+		}
+	}
+}
+
 func TestUnixSourceValidation(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "source")
