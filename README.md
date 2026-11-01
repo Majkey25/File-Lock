@@ -9,7 +9,7 @@
 Encrypt a file with a passphrase. Unlock it when you need it. Move, rename or delete the locked file normally.
 
 ```text
-  FILE LOCK  /  1.0.0
+  FILE LOCK  /  1.0.1
   ────────────────────────────────────
   C:\Documents\notes.txt
   Unlocked

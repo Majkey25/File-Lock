@@ -1,4 +1,4 @@
-# File Lock v1.0.0
+# File Lock v1.0.1
 
 First public release for Windows 10/11 x64.
 
