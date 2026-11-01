@@ -14,13 +14,21 @@ func TestSetupPersistsOnlyPath(t *testing.T) {
 	writeFixture(t, path, []byte("private"))
 	config := filepath.Join(dir, "config", "target.txt")
 	got, err := setup(bufio.NewReader(strings.NewReader(`"`+path+"\"\n")), config)
-	if err != nil || got != path || string(contents(t, config)) != path {
+	if err != nil || string(contents(t, config)) != got {
 		t.Fatalf("setup did not persist path: %q, %v", got, err)
+	}
+	original, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, err := os.Stat(got)
+	if err != nil || !os.SameFile(original, selected) {
+		t.Fatalf("setup selected a different file: %v", err)
 	}
 	if _, err := setup(bufio.NewReader(strings.NewReader("missing\n")), config); err == nil {
 		t.Fatal("setup accepted invalid path")
 	}
-	if string(contents(t, config)) != path {
+	if string(contents(t, config)) != got {
 		t.Fatal("failed setup changed saved path")
 	}
 }

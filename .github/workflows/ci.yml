@@ -1,4 +1,4 @@
-name: Windows checks
+name: Checks
 
 on:
   push:
@@ -11,7 +11,25 @@ permissions:
 
 jobs:
   check:
-    runs-on: windows-latest
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-x64
+            runner: windows-latest
+          - platform: linux-x64
+            runner: ubuntu-latest
+          - platform: linux-arm64
+            runner: ubuntu-24.04-arm
+          - platform: macos-arm64
+            runner: macos-latest
+          - platform: macos-x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
@@ -27,27 +45,40 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           go vet ./...
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Test real NTFS file operations and encryption
+      - name: Test native file operations and encryption
         run: go test -count=1 -v ./...
       - name: Check reachable dependencies for known vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
       - name: Build portable release
         run: ./scripts/build.ps1
+      - name: Exercise the native terminal menu
+        if: runner.os != 'Windows'
+        run: python3 scripts/smoke-unix.py dist/package/file-lock
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: check
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
-          go-version: '1.27.3'
-      - run: ./scripts/build.ps1
+          path: dist
+          merge-multiple: true
       - name: Publish versioned download
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create $env:RELEASE_TAG dist/File-Lock-windows-x64.zip dist/SHA256SUMS.txt --verify-tag --title "File Lock $env:RELEASE_TAG" --notes-file CHANGELOG.md
+        run: |
+          cat dist/*.sha256 > dist/SHA256SUMS.txt
+          gh release create "$RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/SHA256SUMS.txt --verify-tag --title "File Lock $RELEASE_TAG" --notes-file CHANGELOG.md

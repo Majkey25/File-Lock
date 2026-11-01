@@ -1,3 +1,11 @@
+# File Lock v1.1.0
+
+* Add Linux x64/ARM64 and macOS Intel/Apple Silicon executables.
+* Add native tests for each released platform and architecture.
+* Add POSIX source-change checks, private staging and source quarantine before removal.
+* Replace the README with platform downloads, a quick start and separate security documentation.
+* Add repository artwork for README and social sharing previews.
+
 # File Lock v1.0.1
 
 First public release for Windows 10/11 x64.

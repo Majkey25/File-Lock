@@ -1,76 +1,81 @@
+<p align="center">
+  <img src="assets/social-preview.png" alt="File Lock | Private files. Your passphrase." width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Majkey25/File-Lock/releases/latest"><img src="https://img.shields.io/github/v/release/Majkey25/File-Lock?style=flat-square&color=167d57" alt="Latest release"></a>
+  <a href="https://github.com/Majkey25/File-Lock/actions/workflows/ci.yml"><img src="https://github.com/Majkey25/File-Lock/actions/workflows/ci.yml/badge.svg" alt="Build and tests"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-64748b?style=flat-square" alt="MIT license"></a>
+  <a href="https://age-encryption.org"><img src="https://img.shields.io/badge/encryption-age-167d57?style=flat-square" alt="age encryption"></a>
+</p>
+
 # File Lock
 
-[![Download latest](https://img.shields.io/badge/Download-latest_release-167D57?style=for-the-badge&logo=windows)](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-windows-x64.zip)
-[![Release](https://img.shields.io/github/v/release/Majkey25/File-Lock)](https://github.com/Majkey25/File-Lock/releases/latest)
-[![Tests](https://github.com/Majkey25/File-Lock/actions/workflows/ci.yml/badge.svg)](https://github.com/Majkey25/File-Lock/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Windows x64](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4)](https://github.com/Majkey25/File-Lock/releases/latest)
+A small, offline terminal app for encrypting individual files with a passphrase. Choose a file once, then lock or unlock it from a simple menu. Encrypted files remain movable, renameable and deletable.
 
-Encrypt a file with a passphrase. Unlock it when you need it. Move, rename or delete the locked file normally.
+No account, cloud service or runtime installation. Available for Windows, Linux and macOS.
+
+## Download
+
+Choose the archive for your system. Each download includes the executable, documentation and dependency licenses.
+
+| System | Download |
+| :--- | :--- |
+| Windows | [Download x64 ZIP](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-windows-x64.zip) |
+| Linux | [Download x64](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-linux-x64.tar.gz) · [Download ARM64](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-linux-arm64.tar.gz) |
+| macOS | [Download Apple Silicon](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-macos-arm64.tar.gz) · [Download Intel](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-macos-x64.tar.gz) |
+
+[All releases](https://github.com/Majkey25/File-Lock/releases) · [SHA-256 checksums](https://github.com/Majkey25/File-Lock/releases/latest/download/SHA256SUMS.txt)
+
+## Get started
+
+**Windows:** extract the ZIP completely, then open `File-Lock.cmd` or run `FileLock.exe` in your terminal.
+
+**Linux and macOS:** extract the archive, open its folder in Terminal, then run:
+
+```sh
+./file-lock
+```
 
 ```text
-  FILE LOCK  /  1.0.1
-  ────────────────────────────────────
-  C:\Documents\notes.txt
-  Unlocked
-
   [0] Setup    [1] Lock    [2] Unlock    [Q] Quit
-
-  >
 ```
 
-## Download and use
+1. Enter `0` and paste the full path to a file you own.
+2. Enter `1`, choose a passphrase and confirm it. Use at least 12 characters; five or more randomly chosen words are a better choice.
+3. Enter `2` and provide the same passphrase to restore the file. Each menu choice requires Enter.
 
-1. [Download the latest Windows x64 ZIP](https://github.com/Majkey25/File-Lock/releases/latest/download/File-Lock-windows-x64.zip) and extract it completely.
-2. Open `File-Lock.cmd`, or run `FileLock.exe` in your terminal. No installation, administrator access, PowerShell, Python or separate age executable is required.
-3. Press `0`, then paste the full path to one file. Quoted paths and Unicode names work.
-4. Press `1`. Enter a new passphrase of at least 12 characters and confirm it. Prefer five or more randomly chosen words from a password manager.
-5. Press `2` and enter the same passphrase to unlock. Press `Q` to quit.
+Locking `notes.txt` creates `notes.txt.age`. Unlocking restores `notes.txt`. The app verifies the completed output before removing its source and refuses to overwrite existing files. If a locked file moves, keep the `.age` extension and select its new path with `0`.
 
-The selected path is remembered in `%APPDATA%\File-Lock\target.txt`. The passphrase is never saved. Menu choices require Enter. Passphrase input is hidden.
+**Keep your passphrase and an independent backup. There is no password reset, backdoor or recovery key.**
 
-Locking `notes.txt` creates `notes.txt.age`. The app decrypts the new encrypted copy into a hash and compares it with the source before removing the original. Unlocking authenticates the complete encrypted file before publishing restored `notes.txt`, then removes `notes.txt.age`.
+## How protection works
 
-If you move or rename a locked file, keep its `.age` extension. Use `0` to select its new full path. For example, `renamed.txt.age` restores to `renamed.txt` in that folder. The file does not depend on its original path or Windows account for decryption.
+File Lock uses the maintained [age library](https://github.com/FiloSottile/age) and its standard encrypted file format. Passphrase protection uses scrypt with work factor 18 and authenticated ChaCha20-Poly1305 encryption. Passphrases stay out of settings and command-line arguments.
 
-**Keep the passphrase and a separate backup. There is no reset, backdoor or recovery key. Losing the passphrase means losing access to the contents. Deleting the encrypted file also deletes your copy of the data.**
+* Encryption is verified by decrypting the new copy and comparing its SHA-256 with the source.
+* Decryption must authenticate the entire file before restored plaintext becomes available at the destination.
+* Private staging and atomic no-overwrite publishing protect against partial outputs and destination conflicts.
+* Windows uses mandatory sharing locks. Linux and macOS use advisory locks, source-change checks and source quarantine during removal. Close editors and other programs using the file before processing it.
 
-## Security and limits
+Supported inputs are regular local files. Windows requires a fixed NTFS volume. Links, directories, special files and metadata the app cannot preserve are refused. On Linux and macOS, use a trusted folder you own. Files with extended attributes, including macOS resource forks, are refused.
 
-* Uses the maintained [age library](https://github.com/FiloSottile/age) v1.3.2 and its standard binary format. Passphrase protection uses scrypt with work factor 18, approximately 256 MiB of working memory, and authenticated ChaCha20-Poly1305 encryption. No custom cryptography.
-* Each operation uses fresh randomness. Existing destinations are never overwritten, including a destination created during an operation.
-* The exact source file is held against writes, moves and deletion while processing. Its parent directories are held against renaming. Locks are released when the operation ends. Other readers already holding the file may prevent the operation from starting.
-* Temporary files use a private same-volume directory accessible to the current Windows user and SYSTEM. Normal failures clean staging files and preserve the source. If source deletion fails after publishing, the app reports that both copies remain. Check them manually before deleting anything.
-* Supports single regular files on local fixed NTFS volumes on Windows 10/11 x64. Refuses directories, hard links, symbolic links, junction paths, cloud reparse points, EFS files, alternate data streams, device paths and network shares. Move a cloud file into a normal local folder first. No folder archives or batch encryption.
-* Imported files must use binary passphrase age format and a scrypt work factor no greater than 18. Files produced by the original scripts with standard age defaults are supported. Armored files, public-key recipients and `.tar.age` folder restoration are outside this app's scope.
-* File names and approximate sizes remain visible. Content encryption does not hide these. Restored files get a fresh timestamp and private permissions; original ACLs, attributes and metadata are not backed up.
-* Removing plaintext is ordinary file deletion, **not secure erasure**. SSDs, backups, cloud history, editor recovery files, memory and the Windows page file may retain data. Use BitLocker for disk protection. Malware or an administrator controlling your machine can read unlocked data or capture your passphrase.
-* A forced termination or power loss can leave `.file-lock-*` staging directories, potentially containing partial plaintext, or both complete copies. Check the original, output and staging directory before cleanup. Do not interrupt an operation. No power-loss durability guarantee is made.
-* Release executables are unsigned. Windows SmartScreen may flag an unfamiliar download. Compare the ZIP's SHA-256 with `SHA256SUMS.txt` from the same release. These checksums detect a mismatched download; they are not an independent signature.
+Encryption does not hide filenames or erase old disk contents, backups or cloud history. Builds are unsigned and macOS builds are not notarized. OS download protections may require your review before execution. See [security and recovery](docs/security.md) for the full limits, recovery commands and interrupted-operation guidance.
 
-## Recovery with age
+## Build and verify
 
-The encrypted data is standard age, so this app is not required for recovery. With the official [age CLI](https://github.com/FiloSottile/age/releases) installed, choose an output path that does not already exist:
+Install Go 1.27.3 or newer. No C compiler is required.
 
-```powershell
-age --decrypt --output recovered-notes.txt notes.txt.age
-```
-
-Enter your passphrase when age prompts. This command keeps the encrypted input. Preserve it until you have checked the recovered file.
-
-## Build and check
-
-Install Go 1.27.3 or newer on Windows. Dependencies are pinned in `go.mod` and `go.sum`.
-
-```powershell
+```sh
 go mod verify
 go vet ./...
-go test -count=1 -v ./...
+go test -count=1 ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
-go build -trimpath -ldflags="-s -w" -o FileLock.exe .
-pwsh -NoProfile -File scripts/build.ps1
+go build -trimpath -o file-lock .
 ```
 
-The packaging script creates `dist/File-Lock-windows-x64.zip` and `dist/SHA256SUMS.txt`. GitHub Actions runs the Windows tests before creating a release for a `v*` tag. Tests exercise actual NTFS files, production-strength round trips, upstream age decryption, moved vaults, wrong passwords, corrupt and truncated ciphertext, conflicts, source sharing locks, hard links, alternate streams and staging permissions.
+On Windows, use `-o FileLock.exe`. Release packaging uses `pwsh -NoProfile -File scripts/build.ps1` on the target system. CI runs native tests and builds on Windows x64, Linux x64/ARM64 and macOS Intel/Apple Silicon before publishing release archives.
 
-MIT license. Bundled dependency notices are included in each release ZIP.
+## License
+
+[MIT](LICENSE). Third-party license notices ship with every release.

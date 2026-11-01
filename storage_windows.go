@@ -200,7 +200,7 @@ func publish(stage *os.File, destination string) error {
 	return nil
 }
 
-func removeSource(f *os.File) error {
+func removeSource(f *os.File, _ string, _ os.FileInfo) error {
 	deletePending := uint32(1)
 	return windows.SetFileInformationByHandle(windows.Handle(f.Fd()), windows.FileDispositionInfo,
 		(*byte)(unsafe.Pointer(&deletePending)), uint32(unsafe.Sizeof(deletePending)))

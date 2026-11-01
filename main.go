@@ -13,7 +13,7 @@ import (
 	"golang.org/x/term"
 )
 
-const version = "1.0.1"
+const version = "1.1.0"
 
 func configPath() (string, error) {
 	dir, err := os.UserConfigDir()
@@ -190,7 +190,7 @@ func main() {
 		return
 	}
 	if len(os.Args) != 1 {
-		fmt.Fprintln(os.Stderr, "Usage: FileLock.exe [--version]")
+		fmt.Fprintf(os.Stderr, "Usage: %s [--version]\n", filepath.Base(os.Args[0]))
 		os.Exit(1)
 	}
 	if err := run(bufio.NewReader(os.Stdin)); err != nil {

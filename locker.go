@@ -38,6 +38,11 @@ func transform(path, password string, lock bool) (destination string, result err
 	if err != nil {
 		return "", err
 	}
+	originalInfo, err := source.Stat()
+	if err != nil {
+		source.Close()
+		return "", err
+	}
 	var stage *os.File
 	var stageDir string
 	defer func() {
@@ -46,7 +51,7 @@ func transform(path, password string, lock bool) (destination string, result err
 			result = errors.Join(result, stage.Close())
 		}
 		if stageDir != "" {
-			if err := os.RemoveAll(stageDir); err != nil {
+			if err := cleanupStage(stageDir); err != nil {
 				result = errors.Join(result, fmt.Errorf("remove staging directory %q manually; it may contain plaintext: %w", stageDir, err))
 			}
 		}
@@ -91,13 +96,13 @@ func transform(path, password string, lock bool) (destination string, result err
 	if err := publish(stage, destination); err != nil {
 		return "", err
 	}
-	if err := removeSource(source); err != nil {
+	if err := removeSource(source, stageDir, originalInfo); err != nil {
 		return destination, fmt.Errorf("output is safe at %q, but source removal failed; BOTH copies remain: %w", destination, err)
 	}
 	return destination, nil
 }
 
-func encryptVerified(out *os.File, in io.Reader, password string) error {
+func encryptVerified(out *os.File, in io.ReadSeeker, password string) error {
 	recipient, err := age.NewScryptRecipient(password)
 	if err != nil {
 		return err
@@ -123,7 +128,25 @@ func encryptVerified(out *os.File, in io.Reader, password string) error {
 	if !bytes.Equal(original.Sum(nil), verified.Sum(nil)) {
 		return errors.New("verification failed; source was kept")
 	}
+	if _, err := in.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	current := sha256.New()
+	if _, err := io.Copy(current, in); err != nil {
+		return err
+	}
+	if !bytes.Equal(original.Sum(nil), current.Sum(nil)) {
+		return errors.New("source changed during encryption; source was kept")
+	}
 	return nil
+}
+
+func cleanupStage(dir string) error {
+	if err := os.Remove(filepath.Join(dir, "data")); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	// A quarantined source must survive every failure, including cleanup.
+	return os.Remove(dir)
 }
 
 func decryptTo(out io.Writer, in io.Reader, password string) error {
