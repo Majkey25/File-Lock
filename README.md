@@ -64,7 +64,7 @@ Encryption does not hide filenames or erase old disk contents, backups or cloud 
 
 ## Build and verify
 
-Install Go 1.27.3 or newer. No C compiler is required.
+Install Go 1.27.4 or newer. No C compiler is required.
 
 ```sh
 go mod verify
